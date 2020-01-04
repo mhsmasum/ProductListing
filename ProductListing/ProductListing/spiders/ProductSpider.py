@@ -8,25 +8,32 @@ class ProductSpider(scrapy.Spider):
     
     allowed_domains=["www.amazon.com"]
     
-    start_urls=['https://www.amazon.com/s?k=deals&i=electronics-intl-ship&bbn=16225009011&rh=n%3A16225009011%2Cn%3A7926841011%2Cp_36%3A1253505011&dc&page=1&crid=Y05SHZAOXEPT&qid=1576939850&rnid=386442011&sprefix=Dea%2Caps%2C406&ref=sr_pg_1']
+    # start_urls=['https://www.amazon.com/s?k=deals&i=electronics-intl-ship&bbn=16225009011&rh=n%3A16225009011%2Cn%3A7926841011%2Cp_36%3A1253505011&dc&page=1&crid=Y05SHZAOXEPT&qid=1576939850&rnid=386442011&sprefix=Dea%2Caps%2C406&ref=sr_pg_1']
 
-    count = 0 
-    
+    # count = 0 
+    def start_requests(self):
+        urls=[
+            'https://www.amazon.com/s?k=deals&i=electronics-intl-ship&bbn=16225009011&rh=n%3A16225009011%2Cn%3A7926841011%2Cp_36%3A1253505011&dc&page=1&crid=Y05SHZAOXEPT&qid=1576939850&rnid=386442011&sprefix=Dea%2Caps%2C406&ref=sr_pg_1'
+            ]
+        #
+        for url in urls:
+            yield scrapy.Request(url=url , callback=self.parse)
     
     def parse(self,response):
         
         products = response.xpath('//*[@id="search"]/div[1]//div[2]/div/div/div[1]/div/div/div/h2/a[1]/span/text()').extract()
         productUrl = response.xpath('//*[@id="search"]/div[1]//div[2]/div/div/div[1]/div/div/div/h2/a/@href').getall()
-        nextPage = response.xpath('//*[@id="search"]/div[1]/div[2]/div/span[8]/div/span/div/div/ul/li[7]/a/@href').get()
+        nextPage = response.xpath('//*[@id="search"]/div[1]/div[2]/div/span[8]/div/span/div/div/ul/li[@class="a-last"]/a/@href').get()
+        totalPages = response.xpath('//*[@id="search"]/div[1]/div[2]/div/span[8]/div/span/div/div/ul/li[@class="a-disabled"]/text()').extract()
        
         if nextPage is not None:
-            print('------------------------')
+            
             print(nextPage)
             yield  scrapy.Request( response.urljoin(nextPage) , callback=self.parse )
         
-        # for url in  productUrl:
-        #     absurl = response.urljoin(url)
-        #     yield scrapy.Request( absurl , callback=self.parse_details )
+        for url in  productUrl:
+            absurl = response.urljoin(url)
+            yield scrapy.Request( absurl , callback=self.parse_details )
         
         
         
