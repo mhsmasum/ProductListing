@@ -5,37 +5,61 @@ from ProductListing.items import ProductlistingItem
 
 class ProductSpider(scrapy.Spider):
     name="ProductSpider"
+    
     allowed_domains=["www.amazon.com"]
     
-    #start_urls=['https://www.amazon.com/s?i=automotive-intl-ship&bbn=2562090011&rh=n%3A2562090011%2Cn%3A15690151%2Cn%3A15736321&dc&page=2&fst=as%3Aoff&qid=1576906774&rnid=15690151&ref=sr_pg_1']
     start_urls=['https://www.amazon.com/s?k=deals&i=electronics-intl-ship&bbn=16225009011&rh=n%3A16225009011%2Cn%3A7926841011%2Cp_36%3A1253505011&dc&page=1&crid=Y05SHZAOXEPT&qid=1576939850&rnid=386442011&sprefix=Dea%2Caps%2C406&ref=sr_pg_1']
 
-
+    count = 0 
     
     
     def parse(self,response):
         
         products = response.xpath('//*[@id="search"]/div[1]//div[2]/div/div/div[1]/div/div/div/h2/a[1]/span/text()').extract()
         productUrl = response.xpath('//*[@id="search"]/div[1]//div[2]/div/div/div[1]/div/div/div/h2/a/@href').getall()
+        nextPage = response.xpath('//*[@id="search"]/div[1]/div[2]/div/span[8]/div/span/div/div/ul/li[7]/a/@href').get()
+       
+        if nextPage is not None:
+            print('------------------------')
+            print(nextPage)
+            yield  scrapy.Request( response.urljoin(nextPage) , callback=self.parse )
         
-        # productLength = len(productUrl)
-        # print(products)
-        # print(productLength)
-        for url in  productUrl:
-            absurl = response.urljoin(url)
-            yield scrapy.Request( absurl , callback=self.parse_details )
+        # for url in  productUrl:
+        #     absurl = response.urljoin(url)
+        #     yield scrapy.Request( absurl , callback=self.parse_details )
+        
+        
+        
+            
             
        
 
 
     def parse_details(self , response):
+        itemList = list()
+        item = ProductlistingItem()
+        title = response.css('#productTitle::text').get()
         
-
-        atitle = response.xpath("//body[1]/div[2]/div[1]/div[5]/div[3]/div[3]/div[1]/div[2]/div[1]/div[1]/div[1]/h1[1]/span[1]/text()").extract()
-        atitle = response.xpath('/body/div[1]/div[5]/div[3]/div[3]/div/div[2]/div[1]/div[1]/div/h1/span')
-        # atitle = response.xpath('//span[contains(@id, "productTitle")]').extract()
-        print ("-------------------")
-        print(atitle)
+        thePrice = None
+        price = response.css('.price-large::text').get()
+        vendor = response.css('#bylineInfo::text').get()
+        priceLarge = response.css('.price-large::text').get()
+        pricesmall = response.xpath('//*[@id="usedPitchPrice"]/div[1]/span/span[3]/text()').get()
+        
+        if title is not None:
+            item["ProductName"] = title.strip()
+        if vendor is not None:
+            item["vendor"]=vendor.strip().replace('by','').strip()
+        if priceLarge is not None:
+            thePrice = priceLarge.strip()
+        if pricesmall is not None:
+            thePrice = thePrice+"."+pricesmall.strip()
+        if thePrice is not None:
+            item["price"]=thePrice
+        itemList.append(item)
+    
+        return itemList
+        
 
         
         
